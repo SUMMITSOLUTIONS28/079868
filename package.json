@@ -1,0 +1,13 @@
+{
+  "name": "pesapal-2ksh-payment",
+  "version": "1.0.0",
+  "description": "Legal M-Pesa payment of exactly 2 KSH using PesaPal sandbox",
+  "main": "backend.js",
+  "scripts": {
+    "start": "node backend.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0"
+  }
+}
