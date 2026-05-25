@@ -1,0 +1,81 @@
+services:
+  - type: web
+    name: mpesa-payment-backend
+    env: node
+    buildCommand: |
+      cat > package.json << 'EOF'
+      {
+        "name": "mpesa-payment",
+        "version": "1.0.0",
+        "main": "server.js",
+        "scripts": { "start": "node server.js" },
+        "dependencies": {
+          "express": "^4.18.2",
+          "axios": "^1.6.0"
+        }
+      }
+      EOF
+      
+      cat > server.js << 'EOF'
+      const express = require('express');
+      const crypto = require('crypto');
+      const axios = require('axios');
+      
+      const app = express();
+      app.use(express.json());
+      
+      const PESAPAL_KEY = process.env.PESAPAL_CONSUMER_KEY || '5AnFeLarnnmT5+0KUUHuqF6LQKxg+J17';
+      const PESAPAL_SECRET = process.env.PESAPAL_CONSUMER_SECRET;
+      
+      app.post('/initiate-payment', async (req, res) => {
+        const { amount, phone } = req.body;
+        if (amount !== 10) return res.status(400).json({ error: 'Amount must be 10 KES' });
+        if (!phone || !/^07\d{8}$/.test(phone)) return res.status(400).json({ error: 'Valid Kenyan phone number required (07XXXXXXXX)' });
+      
+        const pesapalUrl = 'https://www.pesapal.com/api/PostPesapalDirectOrderV4';
+        const merchantRef = `ORDER_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        let mpesaPhone = phone.replace(/^07/, '254');
+        
+        const xml = `<?xml version="1.0" encoding="utf-8"?>
+          <PesapalDirectOrderInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            Amount="10.00" Currency="KES" Description="M-Pesa Payment" Type="MERCHANT"
+            Reference="${merchantRef}" FirstName="Customer" LastName="Payment"
+            Email="customer@example.com" PhoneNumber="${mpesaPhone}"
+            xmlns="http://www.pesapal.com" />`;
+      
+        const oauth_nonce = crypto.randomBytes(16).toString('hex');
+        const oauth_timestamp = Math.floor(Date.now() / 1000).toString();
+        const baseString = `POST&${encodeURIComponent(pesapalUrl)}&${encodeURIComponent(
+          `oauth_consumer_key=${PESAPAL_KEY}&oauth_nonce=${oauth_nonce}&oauth_signature_method=HMAC-SHA1&oauth_timestamp=${oauth_timestamp}&oauth_version=1.0`
+        )}`;
+        const signingKey = `${PESAPAL_SECRET}&`;
+        const oauth_signature = crypto.createHmac('sha1', signingKey).update(baseString).digest('base64');
+        const authHeader = `OAuth oauth_consumer_key="${PESAPAL_KEY}", oauth_nonce="${oauth_nonce}", oauth_signature="${encodeURIComponent(oauth_signature)}", oauth_signature_method="HMAC-SHA1", oauth_timestamp="${oauth_timestamp}", oauth_version="1.0"`;
+      
+        try {
+          const response = await axios.post(pesapalUrl, xml, {
+            headers: { 'Content-Type': 'application/xml', 'Authorization': authHeader }
+          });
+          const redirectMatch = response.data.match(/<RedirectURL>(.*?)<\/RedirectURL>/);
+          if (!redirectMatch) throw new Error('No redirect URL');
+          res.json({ redirect_url: redirectMatch[1] });
+        } catch (error) {
+          console.error(error);
+          res.status(500).json({ error: 'Payment gateway error' });
+        }
+      });
+      
+      app.get('/health', (req, res) => res.send('OK'));
+      
+      const PORT = process.env.PORT || 3000;
+      app.listen(PORT, () => console.log('✅ Payment backend running'));
+      EOF
+      
+      npm install
+      
+    startCommand: node server.js
+    envVars:
+      - key: PESAPAL_CONSUMER_KEY
+        value: 5AnFeLarnnmT5+0KUUHuqF6LQKxg+J17
+      - key: PESAPAL_CONSUMER_SECRET
+        sync: false   # ⚠️ You MUST set this in Render dashboard
