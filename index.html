@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>PesaPal - Pay with M-Pesa</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(145deg, #f6f9fc 0%, #eef2f5 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+    }
+    .payment-container {
+      max-width: 520px;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 32px;
+      box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+    .header {
+      background: #0b2b26;
+      padding: 1.5rem;
+      color: white;
+    }
+    .header h1 { font-size: 1.5rem; font-weight: 600; }
+    .header p { font-size: 0.85rem; opacity: 0.8; margin-top: 0.25rem; }
+    .methods {
+      padding: 1.25rem 1.5rem 0.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+      border-bottom: 1px solid #e9edf2;
+    }
+    .method-chip {
+      background: #f4f6f9;
+      border-radius: 40px;
+      padding: 0.4rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #1f2a3e;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .amount-section {
+      padding: 1.5rem;
+      background: #fefce8;
+      border-bottom: 1px solid #e9edf2;
+    }
+    .amount-label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #4a5b6e;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+    .amount-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .amount-input-wrapper input {
+      flex: 2;
+      padding: 0.9rem 1rem;
+      font-size: 1.2rem;
+      font-weight: 600;
+      border: 1.5px solid #dce3ec;
+      border-radius: 60px;
+      background: white;
+      outline: none;
+      transition: 0.2s;
+    }
+    .amount-input-wrapper input:focus {
+      border-color: #0b2b26;
+      box-shadow: 0 0 0 3px rgba(11,43,38,0.1);
+    }
+    .currency-badge {
+      background: #eef2f6;
+      padding: 0.7rem 1.2rem;
+      border-radius: 60px;
+      font-weight: 600;
+      color: #0b2b26;
+    }
+    .mpesa-form {
+      padding: 1.5rem;
+    }
+    .info-card {
+      background: #eef6ff;
+      border-radius: 20px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.8rem;
+      color: #0c4e6e;
+      line-height: 1.4;
+    }
+    .info-card strong { display: block; margin-bottom: 0.5rem; }
+    .phone-group { margin-bottom: 1.5rem; }
+    .phone-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #1e2f3e;
+      margin-bottom: 0.5rem;
+    }
+    .phone-flex {
+      display: flex;
+      border: 1.5px solid #dce3ec;
+      border-radius: 60px;
+      background: white;
+      overflow: hidden;
+    }
+    .phone-flex:focus-within {
+      border-color: #0b2b26;
+      box-shadow: 0 0 0 3px rgba(11,43,38,0.1);
+    }
+    .country-code {
+      background: #f8fafc;
+      padding: 0.85rem 1rem;
+      font-weight: 500;
+      color: #1f2a3e;
+      border-right: 1px solid #e2e8f0;
+    }
+    .phone-flex input {
+      flex: 1;
+      border: none;
+      padding: 0.85rem 1rem;
+      font-size: 1rem;
+      outline: none;
+    }
+    .proceed-btn {
+      width: 100%;
+      background: #0b2b26;
+      color: white;
+      border: none;
+      padding: 0.9rem;
+      border-radius: 60px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: 0.2s;
+      margin-top: 0.5rem;
+    }
+    .proceed-btn:hover { background: #1f4e48; transform: translateY(-1px); }
+    .proceed-btn:disabled { background: #9aaebf; cursor: not-allowed; }
+    .footer {
+      text-align: center;
+      font-size: 0.7rem;
+      color: #7f8c9a;
+      padding: 1rem 1.5rem 1.5rem;
+      border-top: 1px solid #e9edf2;
+    }
+    .error-message {
+      background: #ffe6e5;
+      color: #b81c1c;
+      border-radius: 60px;
+      padding: 0.6rem 1rem;
+      font-size: 0.8rem;
+      margin-top: 1rem;
+      text-align: center;
+    }
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid white;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="payment-container">
+  <div class="header">
+    <h1>Pay with M-Pesa</h1>
+    <p>Secure payment via PesaPal</p>
+  </div>
+  <div class="methods">
+    <span class="method-chip">📱 M-Pesa</span>
+    <span class="method-chip">📡 Airtel Money</span>
+    <span class="method-chip">💳 Visa / Mastercard</span>
+    <span class="method-chip">📦 E-wallet</span>
+  </div>
+  <div class="amount-section">
+    <span class="amount-label">Enter amount (KES)</span>
+    <div class="amount-input-wrapper">
+      <input type="number" id="amountInput" placeholder="e.g., 10, 50.50" step="0.01" value="10">
+      <span class="currency-badge">KES</span>
+    </div>
+    <small style="color:#7f8c9a; margin-top: 8px; display: block;">Enter any amount – PesaPal’s minimum (≈10 KES) will apply</small>
+  </div>
+  <div class="mpesa-form">
+    <div class="info-card">
+      <strong>🔹 How it works</strong>
+      <p>1. Enter your M-Pesa registered phone number.<br>
+      2. Click "Proceed" – you'll be redirected to PesaPal.<br>
+      3. On the next page, select M-Pesa and confirm the prompt on your phone.<br>
+      4. Money will be deducted from your M-Pesa account.</p>
+    </div>
+    <div class="phone-group">
+      <label>📞 M-Pesa mobile number</label>
+      <div class="phone-flex">
+        <span class="country-code">+254</span>
+        <input type="tel" id="phoneInput" placeholder="712345678" autocomplete="off">
+      </div>
+    </div>
+    <button id="proceedBtn" class="proceed-btn">Proceed to Payment</button>
+    <div id="messageArea"></div>
+  </div>
+  <div class="footer">
+    🔒 Secured by PesaPal • Regulated by Central Bank of Kenya
+  </div>
+</div>
+
+<script>
+  // Your backend URL (Render Web Service)
+  const BACKEND_URL = "https://zero79868.onrender.com/initiate-payment";
+
+  const proceedBtn = document.getElementById('proceedBtn');
+  const phoneInput = document.getElementById('phoneInput');
+  const amountInput = document.getElementById('amountInput');
+  const messageArea = document.getElementById('messageArea');
+
+  function formatPhoneTo07(raw) {
+    let cleaned = raw.replace(/\D/g, '');
+    if (cleaned.startsWith('254')) cleaned = '0' + cleaned.slice(3);
+    if (cleaned.length === 9) cleaned = '0' + cleaned;
+    return cleaned;
+  }
+
+  proceedBtn.addEventListener('click', async () => {
+    let rawPhone = phoneInput.value.trim();
+    let amount = parseFloat(amountInput.value);
+
+    if (isNaN(amount) || amount <= 0) {
+      messageArea.innerHTML = '<div class="error-message">⚠️ Please enter a valid amount (greater than 0).</div>';
+      return;
+    }
+    if (!rawPhone) {
+      messageArea.innerHTML = '<div class="error-message">❌ Please enter your M-Pesa mobile number.</div>';
+      return;
+    }
+    const phone = formatPhoneTo07(rawPhone);
+    if (!phone.match(/^07\d{8}$/)) {
+      messageArea.innerHTML = '<div class="error-message">❌ Invalid number. Use format 07XXXXXXXX or 2547XXXXXXXX.</div>';
+      return;
+    }
+
+    proceedBtn.disabled = true;
+    const originalText = proceedBtn.innerHTML;
+    proceedBtn.innerHTML = '<span class="spinner"></span> Processing...';
+    messageArea.innerHTML = '';
+
+    try {
+      const response = await fetch(BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: amount, phone: phone })
+      });
+      const data = await response.json();
+      if (response.ok && data.redirect_url) {
+        window.location.href = data.redirect_url;
+      } else {
+        throw new Error(data.error || 'Payment initiation failed');
+      }
+    } catch (err) {
+      messageArea.innerHTML = `<div class="error-message">⚠️ ${err.message}. Please try again.</div>`;
+      proceedBtn.disabled = false;
+      proceedBtn.innerHTML = originalText;
+    }
+  });
+</script>
+</body>
+  </html>
